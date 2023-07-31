@@ -1,0 +1,15 @@
+baseline:
+  mean_state: 2.857002
+  prob_top: 0.00557
+tangency (without insider info):
+  mean_state: 6.8863648
+  prob_top: 0.00069
+tangency (with insider info):
+  mean_state: 12.2923709
+  prob_top: 0.01597
+rank optimization (q=1):
+  mean_state: -7.9025
+  prob_top: 0.01768
+rank optimization (q=20):
+  mean_state: -2.8483474
+  prob_top: 0.00278

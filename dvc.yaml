@@ -1,0 +1,108 @@
+stages:
+  process_data:
+    cmd: Rscript src\process_data.R
+    deps:
+    - src\process_data.R
+    - src\helpers
+    - data\raw
+    params:
+    - par.yaml:
+        - rounds_num_fixed
+    outs:
+    - data\processed\returns.RDS
+    - data\processed\returns_list.RDS
+    - data\processed\leaderboard.RDS
+  estimate_coefficients:
+    cmd: Rscript src\estimate_coefficients.R
+    deps:
+    - src\estimate_coefficients.R
+    - src\helpers
+    - data\processed
+    params:
+    - par.yaml:
+        - participants_num_fixed
+        - returns_num_fixed
+        - rounds_num_fixed
+        - rep_estimate_coefficients
+    metrics:
+    - outputs\metrics\coefficients.yaml:
+        cache: false
+  compute_strategy:
+    cmd: Rscript src\compute_strategy.R
+    deps:
+    - src\compute_strategy.R
+    - src\helpers
+    - outputs\metrics\coefficients.yaml
+    params:
+    - par.yaml:
+        - rounds_num
+        - days_per_round
+        - returns_num
+        - returns_mean
+        - rep_compute_strategy
+    outs:
+    - models\strategy_q_1.RDS
+    - models\strategy_q_20.RDS
+  run_competition_simulated:
+    cmd: Rscript src\run_competition_simulated.R
+    deps:
+    - src\run_competition_simulated.R
+    - src\helpers
+    - outputs\metrics\coefficients.yaml
+    - models\strategy_q_1.RDS
+    - models\strategy_q_20.RDS
+    params:
+    - par.yaml:
+    outs:
+    - models\participant_rank_simulated.RDS
+    - models\participant_state_simulated.RDS
+    metrics:
+    - outputs\metrics\metrics_simulated.yaml:
+        cache: false
+  run_competition_bootstrapped:
+    cmd: Rscript src\run_competition_bootstrapped.R
+    deps:
+    - src\run_competition_bootstrapped.R
+    - src\helpers
+    - outputs\metrics\coefficients.yaml
+    - models\strategy_q_1.RDS
+    - models\strategy_q_20.RDS
+    - data\processed\returns_list.RDS
+    - data\processed\leaderboard.RDS
+    params:
+    - par.yaml:
+    outs:
+    - models\participant_rank_bootstrapped.RDS
+    - models\participant_state_bootstrapped.RDS
+    metrics:
+    - outputs\metrics\metrics_bootstrapped.yaml:
+        cache: false
+  auxiliary:
+    cmd:
+    - Rscript src\auxiliary\leaderboard_comparison.R
+    - Rscript src\auxiliary\strategy_diagram.R
+    - Rscript src\auxiliary\scaling_effects.R
+    - Rscript src\auxiliary\position_effects.R
+    - Rscript src\auxiliary\competition_statistics_simulated.R
+    - Rscript src\auxiliary\competition_statistics_bootstrapped.R
+    deps:
+    - src
+    - data\processed
+    - models
+    - outputs\metrics
+    params:
+    - par.yaml:
+    outs:
+    - outputs\tables\leaderboard_comparison.csv:
+        cache: false
+    - outputs\tables\state_table_simulated.csv:
+        cache: false
+    - outputs\tables\state_table_bootstrapped.csv:
+        cache: false
+    plots:
+    - outputs\plots\strategy_diagram_q_1.png
+    - outputs\plots\strategy_diagram_q_20.png
+    - outputs\plots\scaling_effects.png
+    - outputs\plots\position_effects.png
+    - outputs\plots\rank_histogram_simulated.png
+    - outputs\plots\rank_histogram_bootstrapped.png

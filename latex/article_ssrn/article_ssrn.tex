@@ -1,0 +1,571 @@
+\documentclass[3p,times,twocolumn]{elsarticle}
+\usepackage{ecrc}
+
+\volume{00}
+\firstpage{1}
+\journalname{Procedia Computer Science}
+\runauth{}
+\jid{procs}
+\jnltitlelogo{Procedia Computer Science}
+
+\usepackage{amssymb}
+\usepackage[figuresright]{rotating}
+\usepackage{natbib}
+\usepackage{tikz}
+\usepackage{amsmath,amssymb}
+\usepackage[toc,page]{appendix}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.17}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{enumitem} 
+\usepackage{url}
+\usepackage[justification=centering]{caption}
+\usepackage{hyperref}
+\usepackage{bbm}
+\usepackage{setspace}
+\usepackage{etoolbox}
+
+\AtBeginEnvironment{quote}{\par\singlespacing\small}
+
+\newcommand{\splitatcommas}[1]{%
+  \begingroup
+  \begingroup\lccode`~=`, \lowercase{\endgroup
+    \edef~{\mathchar\the\mathcode`, \penalty0 \noexpand\hspace{0pt plus 1em}}%
+  }\mathcode`,="8000 #1%
+  \endgroup
+}
+
+\begin{document}
+
+\begin{frontmatter}
+
+    \title{
+        A Note on the M6 Forecasting Competition:\\
+        Rank Optimization
+    }
+    \author{
+        Filip Staněk\fnref{cor1}
+    }
+    \address{CERGE-EI}
+    \fntext[cor1]{
+        \texttt{filip.stanek@cerge-ei.cz}\\
+        CERGE-EI, a joint workplace of Charles University and the Economics Institute of the Czech Academy of Sciences, Politickych veznu 7, 111 21 Prague, Czech Republic.
+    }
+
+    \dochead{}
+
+    \begin{abstract}
+        We describe a strategy applicable to the investment part of the M6 Forecasting Competition, which maximizes the probability of securing at least the top $q$-th rank.
+        This portfolio strategy can attain a comparable probability of winning as a participant capable of consistently generating approximately double the market returns.
+        However, it exhibits poor performance in expectation.
+        This highlights that the task of succeeding in such a competition may not always coincide with the task of maximizing expected investment returns.
+    \end{abstract}
+
+    \begin{keyword}
+        M6 Forecasting Competition, Portfolio Optimization, Dynamic Programming\\
+        \emph{JEL codes:} G11, C61
+
+    \end{keyword}
+
+\end{frontmatter}
+
+\section{Introduction}
+
+This short note describes a rank optimization approach applicable to the investment part of the M6 forecasting competition and provides an analysis of its effectiveness.
+We show that the task of maximizing the probability of success in an investment competition, such as M6, generally differs from the task of maximizing expected returns.
+We formulate the finite horizon rank optimization as a dynamic programming problem and derive the optimal strategy as a function of the current month and the position within the public leaderboard.
+
+In a stylized model of the competition, we demonstrate that this strategic approach delivers a probability of winning comparable to a participant capable of consistently achieving almost double the market returns.
+We also evaluate the performance of the proposed approach in a bootstrap environment where the investment returns of other participants are resampled from the public leaderboard, aiming to mimic the actual competition environment as closely as possible.
+In this bootstrap environment, the proposed approach performs even better.
+Interestingly, this relatively high probability of winning is achieved at the expense of very poor expected investment returns.
+
+The remainder of this paper is structured as follows.
+Section \ref{subsection:problem_setup} introduces the rules of the competition.
+Section \ref{subsection:stylized_model} lays out several simplifying assumptions and introduces the stylized model of the competition.
+Section \ref{subsection:portfolios} formulates the rank optimization problem and derives the optimal strategy for securing a top rank within this simplified environment.
+Section \ref{section:results} compares the performance of the rank optimization approach with other portfolio strategies.
+Finally, Section \ref{section:conclusions} concludes.\footnote{
+    The repository allowing replication of all results is available at \url{https://github.com/stanek-fi/rank_optimization}.
+}
+
+\section{Method}
+
+\subsection{Problem Setup}\label{subsection:problem_setup}
+
+Here, for the convenience of the reader, we briefly recapitulate the rules of the competition and introduce the notation.
+The official guidelines are available at \citet{makridakisM6FinancialDuathlon2022}.
+
+A universe of $I=100$ assets is given, consisting of $50$ stocks from the S\&P 500 and $50$ ETFs.
+There are $K\in \mathcal{N}$ participants (each participant is an individual or a team consisting of up to 5 individuals) who compete against each other in either the quintile prediction for these assets (forecasting challenge), portfolio optimization (investment challenge), or a combination of these two (duathlon challenge).
+In the duathlon challenge, the ranking of a team is computed as the arithmetic mean of rankings of the team in the respective challenges.
+This short note focuses on the investment challenge (and, by extension, the duathlon challenge).
+
+In the investment challenge, each team $k$ is tasked with submitting portfolio weights $w_{i,m,k}$ for assets $1 \leq i \leq I$ over the span of $M=12$ months.\footnote{More precisely, these are consecutive 28-day long intervals that do not necessarily correspond to calendar months. However, for ease of exposition, we refer to them simply as such.}
+Portfolio weights are submitted prior to the beginning of each month $1 \leq m \leq M$, and the sum of the portfolio weights in absolute value is restricted to the interval
+\begin{equation}
+    0.25 \leq \sum_{i=1}^{I}|w_{i,m,k}|\leq 1.
+\end{equation}
+The plain investment returns of team $k$ at day $t \in T_m$ in month $m$, denoted as $ret_{t,k}$, are computed as
+\begin{equation}
+    RET_{t,k}= \sum_{i=1}^{I} w_{i,m,k} r_{i,t} \quad \text{with} \quad r_{i,t}=\frac{S_{i,t}}{S_{i,t-1}}-1,
+\end{equation}
+\begin{equation}\label{eq:log_transform}
+    ret_{t,k}= ln(1+RET_{t,k}),
+\end{equation}
+where $S_{i,t}$ denotes the asset price for asset $1 \leq i \leq I$ at day $t$.
+The standardized investment returns from $t_1$ to $t_2$ are computed as
+\begin{equation}\label{eq:ir_definition}
+    \begin{split}
+        IR_{t_1:t_2,k}&= (t_2-t_1+1)\dfrac{\widehat{\mu}_{ret_{t_1:t_2,k}}}{\widehat{\sigma}_{ret_{t_1:t_2,k}}}\\
+        &= \frac{\sum\limits_{t=t_1}^{t_{2}} ret_{t,k}}{\sqrt{\frac{1}{t_2 - t_1}\sum\limits_{t=t_1}^{t_2}\left( ret_{t,k} - \frac{1}{t_2 - t_1 + 1}\sum\limits_{t=t_1}^{t_{2}} ret_{t,k} \right)^{2}}}.
+    \end{split}
+\end{equation}
+Finally, the ranking of participants within an interval from $t_1$ to $t_2$ can be computed as
+\begin{equation}
+    rank_{t_1:t_2,k}=\textrm{card}(\left\{ k'| 1 \leq k' \leq K: IR_{t_1:t_2,k'} \geq IR_{t_1:t_2,k} \right\}).
+\end{equation}
+The top 5 participants in the global ranking
+\begin{equation}
+    rank_{T_{1}:T_{12},k} \leq 5
+\end{equation}
+and the top 3 participants in the quarterly ranking
+\begin{equation}
+    rank_{T_{(q-1)*3+1}:T_{(q-1)*3+3},k} \leq 3 \qquad q \in \{1,2,3,4\}
+\end{equation}
+are rewarded.
+
+
+\subsection{Stylized Model of the Competition}\label{subsection:stylized_model}
+
+To derive the optimal strategy, it is necessary to make some simplifying assumptions.
+In particular, we need to fully specify the distribution of returns and the behavior of all participants.
+
+First, we assume that returns are standardized by an estimate of the standard deviation for the respective month, rather than the estimate over the entire evaluated period.
+This makes the investment returns additive.
+\begin{itemize}
+    \item[A1]  \emph{additivity of $IR_{T_{m},k}$:}
+        \begin{equation}
+            IR_{T_{1}:T_{12},k}= \sum_{m=1}^{12}IR_{T_{m,k}}
+        \end{equation}
+\end{itemize}
+Although this deviates from the actual rules of the competition, the changes in the ranking are only minor.
+It allows us to perform bootstrapping at a monthly frequency, and it also significantly simplifies the dynamic programming problem.
+
+\subsubsection{Returns Distribution}
+
+We assume that the assets under consideration are homogeneous, and their returns are jointly normally distributed and independent across time.
+\begin{itemize}
+    \item[A2]  \emph{distribution of returns:}
+        \begin{equation}
+            r_{:,t} \overset{\mathrm{IID}}{\sim} N(\vec{\mu}_{r}, \Sigma_{r})
+        \end{equation}
+        \emph{where}
+        \begin{equation}
+            \vec{\mu}_{r}=\mathbbm{1}\mu_{r}
+        \end{equation}
+        \begin{equation}
+            \Sigma_{r}=I\sigma_{r,r} + (J-I)\sigma_{r,r'}
+        \end{equation}
+\end{itemize}
+The assumption of temporal independence seems like a reasonable approximation in light of the efficient market hypothesis \citep[see, e.g.,][]{malkielReflectionsEfficientMarket2005}.\footnote{For simplicity, we disregard the dependence in higher moments, which is well-documented in the literature \citep[see, e.g.,][]{dieboldModelingVolatilityDynamics1995}.}
+Later, in Section \ref{subsection:tangency_portfolio}, we relax this assumption of unpredictability to assess the degree of predictability needed to secure a top rank.
+
+The value of $\widehat{\mu}_{r}$ is set to correspond to the long-term average yearly nominal returns of $9.75\%$ \citep{webster500Returns19302023}
+\begin{equation}
+    \widehat{\mu}_{r}=0.00037,
+\end{equation}
+and the covariance matrix is estimated based on observed returns from the duration of the competition
+\begin{equation}
+    \widehat{\sigma}_{r,r}=0.00038,
+\end{equation}
+\begin{equation}
+    \widehat{\sigma}_{r,r'}=0.00013.
+\end{equation}
+More details about the estimation procedure are available in \ref{appendix:returns_distribution}.
+
+\subsubsection{Baseline Portfolio}
+
+In order to simulate the competition repeatedly, it is also necessary to fully specify how participants choose their portfolios.
+First, there is the question of optimal scaling of the portfolio weights $\alpha_{m,k} \in [0.25, 1]$ from the raw, unscaled weights $\tilde{w}_{i,m,k}$:
+\begin{equation}
+    w_{i,m,k}=\alpha_{m,k} \frac{1}{\sum_{i'=1}^{I}|\tilde{w}_{i',m,k}|}\tilde{w}_{i,m,k}
+\end{equation}
+where
+\begin{equation}
+    \sum_{i'=1}^{I}|\tilde{w}_{i',m,k}| \neq 0.
+\end{equation}
+This problem turns out to be separable from the problem of choosing the raw weights $\tilde{w}_{i,m,k}$. To minimize the exposure to the unfavorable log transform in Eq. \ref{eq:log_transform}, it is beneficial to rescale weights with $\alpha_{m,k}$ as small as possible.
+In the case of a long equal-weighted portfolio, rescaling with $\alpha_{m,k}=0.25$ achieves an average gain of approximately $0.1$ per month relative to the scenario with $\alpha_{m,k}=1$ (see Fig. \ref{fig:scaling_effects} in \ref{appendix:auxiliary_results}), all without any additional risk.
+Due to the lack of information regarding scaling factors used by participants and the fact that the scaling factor $\alpha_{m,k}$ merely linearly shifts $IR_{T_{m},k}$, we, for the sake of simplicity, assume that $\alpha_{m,k}=1$ for all participants, hence focusing only on the raw weights $\tilde{w}_{i,m,k}$.
+
+We can assume, without loss of generality, that $\tilde{w}_{i,m,k} \in [-1, 1]$.
+To reduce the complexity of the problem, we discretize the interval into $\{-1, 0, 1\}$ and restrict the baseline portfolio to the following ternary choice.
+\begin{itemize}
+    \item[A3]  \emph{baseline portfolio:}
+        \begin{equation}\label{eq:baseline_portfolio}
+            \tilde{w}_{:,m,k} \overset{\mathrm{w/or}}{\sim} \begin{cases}
+                +1 & n_{+1}\, \text{times} \\
+                0  & n_{0}\, \text{times}  \\
+                -1 & n_{-1}\, \text{times} \\
+            \end{cases}
+        \end{equation}
+\end{itemize}
+The position on each asset is drawn at random\footnote{The sampling is performed without replacement to ensure that $\sum_{i'=1}^{I}|\tilde{w}_{i',m,k}| \neq 0$.}, disregarding past realized returns and all other available information.
+This is motivated by assumption of homogeneity of assets and temporal independence (A2); indeed, there is nothing to be predicted in the first place, by assumption.
+
+The frequency of short, zero, and long positions is estimated by matching moments of the actual monthly investment returns $IR_{T_{m},k}$ observed in the public leaderboard with their simulated counterparts using the method of simulated moments \citep{mcfaddenMethodSimulatedMoments1989}:
+\begin{equation}
+    \begin{split}
+        \hat{n}_{+1}&=38\\
+        \hat{n}_{0}&=29\\
+        \hat{n}_{-1}&=33.
+    \end{split}
+\end{equation}
+Details of the estimation procedure are available in \ref{appendix:baseline_portfolio}.
+From the estimated values, it is apparent that participants, on average, maintain somewhat concentrated portfolios ($\hat{n}_{0} > 0$) and exhibit an affinity towards long positions ($\hat{n}_{+1} > \hat{n}_{-1}$).
+This proclivity towards long positions is rational from the perspective of maximizing expected investment returns $IR_{T_{m},k}$ since expected returns are generally positive.
+However, it creates an opportunity to construct adversarial portfolios that can secure a good rank with a relatively high probability.
+
+Despite the simplicity of the baseline portfolio, the simulated statistics of $IR_{T_{m},:}$ under A3 accord remarkably well with those observed in the public leaderboard, as shown in Table \ref{tab:leaderboard_comparison}.
+For months in which participants' $IR_{T_{m},k}$ on average declined, the simulated $IR_{T_{m},k}$ under A3 also declines, and vice versa.
+Furthermore, the simulated $IR_{T_{m},:}$ under A3 accurately replicates the dispersion of $IR_{T_{m},:}$ and, even more crucially, its tail behavior.
+For instance, under A3, the mean value of the total $IR_{T_{m},k}$ for the top $99\%$ performing participants is $35.29$, with a standard deviation of $4.40$.
+This indeed encompasses the actual observed $99\%$ quantile of the total $IR_{T_{m},:}$; $28.68$.
+
+\begin{table}[!htbp]
+    \fontsize{5.5}{5.5}\selectfont
+    \centering
+    \pgfplotstabletypeset[
+        col sep = comma,
+        ignore chars={"},
+        every head row/.style={before row={%
+                        \toprule
+                        \multicolumn{1}{c}{} & \multicolumn{2}{c}{$ mean(IR_{T_{m},:}) $} &  \multicolumn{2}{c}{$ sd(IR_{T_{m},:}) $} &\multicolumn{2}{c}{$ q_{0.01}(IR_{T_{m},:}) $}  & \multicolumn{2}{c}{$ q_{0.99}(IR_{T_{m},:}) $}\\
+                    },after row=\midrule},
+        every last row/.style={after row=\bottomrule},
+        display columns/0/.style={string type, column name={month}},
+        display columns/1/.style={string type, column name={obs.}},
+        display columns/2/.style={string type, column name={sim.}},
+        display columns/3/.style={string type, column name={obs.}},
+        display columns/4/.style={string type, column name={sim.}},
+        display columns/5/.style={string type, column name={obs.}},
+        display columns/6/.style={string type, column name={sim.}},
+        display columns/7/.style={string type, column name={obs.}},
+        display columns/8/.style={string type, column name={sim.}}
+    ]{../../outputs/tables/leaderboard_comparison.csv}
+    \caption{
+        Observed \& Simulated $IR_{T_{m},:}$\\
+        \footnotesize
+        Observed mean, standard deviation, $1\%$, and $99\%$ quantiles of $IR_{T_{m},:}$ for individual months, along with the mean of their simulated counterparts under A3.
+        Standard deviations in parentheses.
+    }
+    \label{tab:leaderboard_comparison}
+\end{table}
+
+Considering this, it seems plausible that A3 at least roughly captures the key aspects of participants' behavior, and consequently, A1-A3 can be used to compute an approximately optimal portfolio strategy to secure a good rank within the competition.
+
+\subsection{Portfolios}\label{subsection:portfolios}
+
+\subsubsection{Rank Optimization Portfolio}
+
+The conventional way of approaching the competition is to maximize the stated objective:
+\begin{equation}\label{eq:conventional_objective}
+    \underset{ \tilde{w}_{:,m,k}}{\textrm{max}}\, \mathbb{E}\left[ IR_{T_m,k} | \mathcal{S}_{m-1}\right] \qquad 1\leq m\leq 12,
+\end{equation}
+where $\mathcal{S}_{m}$ denotes the state at month $m$, containing all the relevant information available at that time.
+However, this approach does not take into account the adversarial nature of the competition and the nonlinear reward structure.
+
+To account for these factors, one might focus directly on optimizing the probability of securing at least the $q$-th rank in the global leaderboard.
+\begin{equation}
+    P\left(rank_{T_1:T_{12},k}\leq q\right).
+\end{equation}
+This problem differs from the one presented in Eq. \ref{eq:conventional_objective} as it cannot be separated into $12$ independent optimization sub-problems.
+The decision regarding portfolio weights $\tilde{w}_{:,m,k}$ depends crucially on the current leaderboard, especially the current rank $rank_{T_1:T_{m-1},k}$, which is encompassed in $\mathcal{S}_{m-1}$.
+Likewise, when choosing portfolio weights $\tilde{w}_{:,m,k}$, one must consider its effects on the probability of securing at least the $q$-th rank in the global leaderboard, while also accounting for the fact that it is possible to further alter the ranking in months yet to come.
+The value function measuring the probability of securing at least the $q$-th rank associated with the dynamic programming problem described above is
+\begin{equation}
+    \begin{split}
+        &V_{m}(\mathcal{\mathcal{S}}_{m-1})=\\
+        &\begin{cases}
+            \underset{ \tilde{w}_{:,m,k}}{\textrm{max}} \, V_{m+1}(\mathcal{\mathcal{S}}_{m})P\left( \mathcal{\mathcal{S}}_{m}| \mathcal{\mathcal{S}}_{m-1}, \tilde{w}_{:,m,k}\right) & 1\leq m \leq 11 \\
+            \underset{ \tilde{w}_{:,m,k}}{\textrm{max}} \, P\left(rank_{T_1:T_{12},k}\leq q| \mathcal{\mathcal{S}}_{m-1}, \tilde{w}_{:,m,k}\right)                                    & m=12.           \\
+        \end{cases}
+    \end{split}
+\end{equation}
+To solve this problem, we can proceed with backward induction, numerically solving the optimization sub-problem for $m=12$ with various $\mathcal{S}_{11}$. Then, armed with the knowledge of $V_{12}(\mathcal{S}_{11})$, we can continue solving the sub-problem for $m=11$ and so forth.
+
+To reduce computational complexity, we restrict $\mathcal{S}_{m}$ to contain only the distance to the $q$-th largest value of $IR_{T_{1}:T_{m},k}$ among the competitors:
+\begin{equation}
+    \mathcal{S}_m = \lbrace \Delta_{m} \rbrace \qquad \Delta_{m} = IR_{T_1:T_m,k} - \underset{k' \neq k}{\textrm{max-$q$-th}} \,IR_{T_1:T_m,k}.
+\end{equation}
+Furthermore, we restrict the portfolio weights $\tilde{w}_{i,m,k}$ to be sampled without replacement with $\splitatcommas{\{n_{+}=100-10k,\,n_{0}=0,\,n_{-}=10k\,|\,0\leq k \leq 10\}}$.
+Imposing $n_{0}=0$ is motivated by the fact that the presence of zero positions seems to alter the distribution of $IR_{T_{m},k}$, and even more importantly, the distribution of $IR_{T_{m},k}$ relative to $IR_{T_{m},k'}$ of the baseline portfolio, only very little, due to the normalization in Eq. \ref{eq:ir_definition} (see Fig. \ref{fig:position_effects} in \ref{appendix:auxiliary_results}).
+As these simplifications can affect the performance of the rank optimization portfolio only adversely, we can interpret the results as a lower bound on the performance of analogous but possibly more complex portfolio strategies.\footnote{
+    Beside accounting for the presence of other competitors in the neighborhood of $\Delta_{m}$, it might also be possible, for example, to construct an analogous strategy that reflects any persistent differences between participants' behavior.
+    These can be estimated by observing daily changes in the leaderboard.
+}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\linewidth]{../../outputs/plots/strategy_diagram_q_1.png}
+    \caption{Rank Optimization Portfolio ($q=1$)\\
+        \footnotesize
+    }
+    \label{fig:strategy_diagram_q_1}
+\end{figure}
+
+Figure \ref{fig:strategy_diagram_q_1} displays the optimal portfolio for $q=1$ as a function of $m$ and $\Delta_{m}$ computed under A1-A3.
+In the initial month, it is optimal to primarily take short positions to create a dispersion between one's own $IR_{T_{1},k}$ and the $IR_{T_{1},k'}$ of competitors.
+Then, if the current $IR_{T_{1}:T_{m},k}$ is higher or at least comparable to the $IR_{T_{1}:T_{m},k}$ of the $q$-th ranking competitor, it is optimal to adopt predominantly long positions to mimic the behavior of possible contenders and hence minimize the probability of losing an already sufficiently good rank.
+If the $q$-th ranking competitor is in the lead, and the gap $\Delta_{m}$ is either so large or the end of the competition is so close that securing the $q$-th rank is unlikely, it is optimal to adopt more short positions to maximize the dispersion of the difference between one's $IR_{T_{m},k}$ and that of the incumbent (see Fig. \ref{fig:position_effects} in \ref{appendix:auxiliary_results}).
+This type of adversarial portfolio, combined with participants' inclination towards long positions, enables one to climb the leaderboard from positions that would otherwise be unsalvageable and to minimize the probability of losing a sufficiently good rank once it has been secured.
+The optimal strategy for $q=20$ is similar (see Fig. \ref{fig:strategy_diagram_q_20} in \ref{appendix:auxiliary_results}), except for the less aggressive shorting in the initial month.
+
+Admittedly, this simple strategy is hardly groundbreaking, and one could arrive at it without formal derivations, using just common sense.
+Many participants possibly did.
+Despite its simplicity, however, such a strategic approach is competitive even relative to hypothetical portfolios capable of generating substantial abnormal returns, as we demonstrate next.
+
+\subsubsection{Tangency Portfolio}\label{subsection:tangency_portfolio}
+
+We slightly extend A2 to allow for semi-strong efficiency of markets with a degree of predictability $\lambda$.
+\begin{itemize}
+    \item[A2']  \emph{distribution of returns:}\\
+        \emph{
+            On top of A2, returns can be further decomposed into two independent components: unpredictable component $r_{:,t}^{u}$ and predictable component $r_{:,t}^{p}$:
+        }
+        \begin{equation}
+            r_{:,t}=r_{:,t}^{u}+r_{:,t}^{p} \qquad
+            \begin{array}{l}
+                r_{:,t}^{u} \overset{\mathrm{IID}}{\sim} N((1-\lambda)\vec{\mu}_{r}, (1-\lambda)\Sigma_{r}) \\
+                r_{:,t}^{p} \overset{\mathrm{IID}}{\sim} N(\lambda\vec{\mu}_{r}, \lambda\Sigma_{r}).
+            \end{array}
+        \end{equation}
+\end{itemize}
+This allows us to compare the performance of the rank optimization portfolio with the performance of a participant who is able, to some degree, to genuinely predict the returns due to possessing insider information or using some non-public superior prediction method.
+
+For this type of participant, $\mathcal{S}_{m}=\lbrace\sum_{t\in T_{m+1}}r_{:,t}^{p}\rbrace$, and the tangency portfolio that maximizes the expected risk-adjusted returns \cite[see e.g.,][]{kourtisSharpeRatioEstimated2016} is
+\begin{equation}
+    \tilde{w}_{:,m,k}=\Sigma_{r}^{-1}((1-\lambda) \vec{\mu}_{r} + \sum_{t\in T_{m}}r_{:,t}^{p}).
+\end{equation}
+For additional comparison, it is also useful to consider a tangency portfolio of a participant without access to insider information or a superior prediction method:
+\begin{equation}
+    \tilde{w}_{:,m,k}=\Sigma_{r}^{-1}\vec{\mu}_{r} \propto \mathbbm{1}.
+\end{equation}
+
+\section{Results}\label{section:results}
+
+To assess the performance of the rank optimization portfolio, we utilize two distinct evaluation environments, each with its specific drawbacks and advantages.
+
+One way of assessing the performance is to repeatedly simulate the stylized model of the competition under A1-A3 with $K=163$ participants.\footnote{
+    Out of the total $226$ participants, only $163$ were eligible for the global prizes.
+}
+Out of these, $162$ utilize the baseline portfolio to mimic the typical risk profiles and affinity towards long positions observed in the competition.
+The remaining participant uses either the tangency portfolio with/without insider information ($\lambda = 0.0003$), the rank optimization portfolio with $q\in \{1,20\}$, or the baseline portfolio for comparison.
+This allows us to assess the probability of securing at least the $q$-th rank in the competition, as well as the expected $IR_{T_{1}:T_{12},k}$ for different portfolio strategies.
+
+To ensure robustness with respect to the violation of assumptions A2 and A3, we also re-simulate the competition by bootstrapping the actual observed stock prices $S_{i,t}$ and investment returns of individual participants $IR_{T_{m},k}$.
+To do so, we resample returns at a monthly frequency with replacement, such that in each bootstrap iteration, participants face a distinct permutation of observed months.
+We set $K=163$, out of which $162$ participants utilize a bootstrapped portfolio.
+The performance of this bootstrapped portfolio is computed by randomly drawing (with replacement) from the distribution of $IR_{T_{m},:}$ observed in the public leaderboard in the corresponding month $m$.
+The remaining participant uses either the rank optimization portfolio ($q\in\{1,20\}$), or the bootstrapped portfolio for comparison.
+This approach allows us to completely dispense with assumptions A2 and A3.
+However, the drawback is that the mere 12 months are unlikely to be representative of the distribution of returns at large.
+As a result, the obtained success rates might be affected by idiosyncrasies observed during this period, and the estimates of the expected $IR_{T_{1}:T_{12},k}$ are likely to be unreliable.
+
+Table \ref{tab:state_table} displays the expected $IR_{T_{1}:T_{12},k}$ and the probability of securing at least rank $q$ for $q\in \{ 1,\,5,\,10,\,20\}$ when simulating the competition under A1-A3.
+Maximizing the expected returns (a tangency portfolio without insider information) improves the expected $IR_{T_{1}:T_{12},k}$ relative to the baseline portfolio but actually reduces the probability of attaining a top rank.
+This is because the $IR_{T_{m},k}$ generated by this portfolio is, while slightly better in expectation, generally located approximately near the median of the $IR_{T_{m},k'}$ of baseline portfolios.
+
+The tangency portfolio with access to insider information attains almost double the expected $IR_{T_{1}:T_{12},k}$ compared to the tangency portfolio without access to insider information (a proxy for market returns); a performance which would be considered extraordinary by almost any standards.
+This substantial difference translates to a respectable, but still relatively modest, probability of $0.266$ (resp. $0.016$) of securing at least the $20$-th (resp. the $1$-st) rank.
+However, comparable probabilities can be attained even without any knowledge of future returns.
+The rank optimization portfolio optimized for $q=20$ (resp. $q=1$) secures the $20$-th (resp. $1$-st) rank with a probability of $0.186$ (resp. $0.018$).
+
+The advantage of optimizing for the rank becomes even more pronounced when bootstrapping the competition rather than simulating it under A1-A3, as can be seen in Table \ref{tab:state_table_bootstrap}.
+In this case, the rank optimization portfolio optimized for $q=20$ (resp. $q=1$) secures the $20$-th (resp. $1$-st) rank with a probability of $0.278$ (resp. $0.034$).
+These higher success rates compared to the simulated environment are likely attributed to the on-average negative returns observed during the competition, which further favors taking short positions.
+
+\begin{table}[!htbp]
+    \fontsize{5.5}{5.5}\selectfont
+    \centering
+    \pgfplotstabletypeset[
+    col sep = comma,
+    ignore chars={"},
+    every head row/.style={before row={%
+    \toprule
+    \multicolumn{11}{c}{\hspace{120pt} $ P(rank_{T_{1}:T_{12},k}\leq q)  $}\\
+    },after row=\midrule},
+    every last row/.style={after row=\bottomrule},
+    display columns/0/.style={string type, column name={portfolio}},
+    display columns/1/.style={dec sep align, precision = 2, fixed, fixed zerofill=true, column name={$\mathbb{E}[IR_{T_{1}:T_{12}}]$}},
+    display columns/2/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 1$}},
+    display columns/3/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 5$}},
+    display columns/4/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 10$}},
+    display columns/5/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 20$}}
+    ]{../../outputs/tables/state_table_simulated.csv}
+    \caption{Comparison of Performance (Simulated)}
+    \label{tab:state_table}
+\end{table}
+
+\begin{table}[!htbp]
+    \fontsize{5.5}{5.5}\selectfont
+    \centering
+    \pgfplotstabletypeset[
+    col sep = comma,
+    ignore chars={"},
+    every head row/.style={before row={%
+    \toprule
+    \multicolumn{11}{c}{\hspace{120pt} $ P(rank_{T_{1}:T_{12},k}\leq q)  $}\\
+    },after row=\midrule},
+    every last row/.style={after row=\bottomrule},
+    display columns/0/.style={string type, column name={portfolio}},
+    display columns/1/.style={dec sep align, precision = 2, fixed, fixed zerofill=true, column name={$\mathbb{E}[IR_{T_{1}:T_{12}}]$}},
+    display columns/2/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 1$}},
+    display columns/3/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 5$}},
+    display columns/4/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 10$}},
+    display columns/5/.style={dec sep align, precision = 3, fixed, fixed zerofill=true, column name={$ q = 20$}}
+    ]{../../outputs/tables/state_table_bootstrapped.csv}
+    \caption{Comparison of Performance (Bootstrapped)}
+    \label{tab:state_table_bootstrap}
+\end{table}
+
+In both Table \ref{tab:state_table} and \ref{tab:state_table_bootstrap}, rank optimization portfolios outperform the baseline/bootstrapped portfolios despite that their expected $IR_{T_{1}:T_{12},k}$ is in fact inferior.
+Figures \ref{fig:rank_histogram} and \ref{fig:rank_histogram_bootstrap} examine this paradox by plotting the histogram of ranks of individual portfolios in the simulated and the bootstrapped environment.
+For the tangency portfolio with insider information, the superior performance is reflected by increasing the probability of a good rank while at the same time decreasing the probability of a poor rank, as one would expect.
+For the rank optimization portfolios, however, the gain in the probability of securing a top rank is achieved \emph{at the cost} of a disproportionately high probability of ending at the very bottom of the leaderboard.
+Indeed, there is no free lunch to be found; one may merely alter the tail behavior of $IR_{T_{1}:T_{12},k}$ to make the probability of a spectacular success and a catastrophic failure simultaneously larger.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{../../outputs/plots/rank_histogram_simulated.png}
+    \caption{Histogram of Ranks (Simulated)}
+    \label{fig:rank_histogram}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{../../outputs/plots/rank_histogram_bootstrapped.png}
+    \caption{Histogram of Ranks (Bootstrapped)}
+    \label{fig:rank_histogram_bootstrap}
+\end{figure}
+
+\section{Conclusions}\label{section:conclusions}
+
+We construct a stylized model imitating the environment of the investment part of the M6 forecasting competition \citep{makridakisM6FinancialDuathlon2022} and formulate a dynamic programming problem to maximize the probability of securing the top rank within this competition.
+By explicitly accounting for the adversarial nature of the competition and strategically acting to maximize the probability of securing the top rank, a participant is capable of measurably improving their success rate compared to the situation when only investment returns are considered and maximized.
+In particular, the probability of securing the top rank when directly optimizing for it is comparable to that of a participant who is consistently attaining almost double the market returns.
+To ensure robustness, we also let the proposed rank optimization portfolio compete in a bootstrap environment where investment returns of other participants are directly resampled from the public leaderboard.
+Here, the success rate is even higher, indicating that the good performance is not merely an artifact of simplifying assumptions made to construct the stylized model.
+
+It should be highlighted that, by its very construction, the analysis cannot make any claims about how individual participants achieved their ranks, much less to downplay the excellent investment returns of the top-performing participants.
+Its purpose is merely to show that the task of securing a good rank in the competition is generally not identical to that of attaining the best investment returns in expectation and to demonstrate that strategic considerations might have played a role in the competition, or at least that the participants might have benefited by taking these considerations into account.
+
+This stance also seems to be supported by descriptions of approaches provided by the participants themselves.
+Miguel Perez Michaus, who ranked close second in the duathlon challenge and who likely missed the first place by a stroke of luck, states:
+\begin{quote}
+    I mainly used risk expansion/contraction to maximize my chances for the duathlon prize given a solid forecasting score.
+    Depending on market conditions and leaderboard projections I made discretionary use of risk neutral positioning (short SHY / long IEF) marginally benefiting from curve inversion while near-zero volatile, long only positioning, index shorting and volatility based stock selection,...\citep{michausFinQBoostMachineLearning2023}
+\end{quote}
+The prevalence of self-reported strategic play among the top-performing participants is likely no coincidence.
+
+Finally, this text is not intended as a critique of the design of the competition.
+Quite the contrary, many of the design elements seem to have been carefully chosen to counteract the effects described above.
+The introduction of quarterly prizes, though not analyzed in this paper, likely partially lessens the attention devoted to the global ranking, making the incentives more aligned with the task of maximizing expected investment returns.
+Similarly, defining the objective in terms of risk-adjusted returns eliminates the possibility of forming increasingly more concentrated, and hence more variable, portfolios in the hope of securing a top rank as the end of the competition approaches; a strategy which would be dominant under the plain investment returns objective.
+Nonetheless, perfectly aligning the incentives of participants with the stated objective is likely impossible given the real-world constraints and trade-offs that organizers inevitably faced.\footnote{Even allocating prize money proportionally to investment returns would, besides making the competition much less exciting, likely not fully eliminate these strategic considerations. Non-monetary incentives in securing top ranks might then easily overshadow incentives stemming from the more equitably spread prizes.}
+
+\appendix
+
+\section{Estimation}
+
+\subsection{Returns Distribution}\label{appendix:returns_distribution}
+
+We estimate $\widehat{\sigma}_{r,r}$ and $\widehat{\sigma}_{r,r'}$ by MLE.
+An explicit estimator for the covariance matrix under compound symmetry \citep[see][p. 95]{seberMultivariateObservations1984} is
+\begin{equation}
+    \widehat{\sigma}_{r,r}=\dfrac{1}{I}\sum_{i=1}^{I}s_{i,i},
+\end{equation}
+\begin{equation}
+    \widehat{\sigma}_{r,r'}=\dfrac{1}{I*(I-1)}\sum_{i\neq i'}^{R}s_{i,i'},
+\end{equation}
+where $s_{i,i'}$ is the conventional unbiased covariance estimate.
+
+\subsection{Baseline Portfolio}\label{appendix:baseline_portfolio}
+
+We estimate $\theta=\{ n_{+1}, n_{0}, n_{-1}\}$ using the method of simulated moments \citep{mcfaddenMethodSimulatedMoments1989}.
+The estimation is performed by matching the mean and the kurtosis of $IR_{T_{m},:}$ for any given month $m$ with those observed using weights simulated via Eq. \ref{eq:baseline_portfolio}.
+We opt for kurtosis since the variance is non-informative given that $IR_{T_{m},k}$ is already standardized.
+Let us denote the data from month $m$ as $\mathcal{D}_{m}=\{w_{:,m,:}, \{r_{:,t}\}_{t\in T_{m}}\}$.
+The moment function is defined as
+\begin{equation}
+    g(\mathcal{D}_{m},\theta)=
+    \begin{pmatrix}
+        \dfrac{\left(g_{1}(\mathcal{D}_{m})- \hat{\mu}_{g_{1}}(\theta)\right)^2 - \hat{\sigma}^{2}_{g_{1}}(\theta)}{\sqrt{\hat{\sigma}^{2}_{g_{1}}(\theta)}} \\
+        \dfrac{\left(g_{2}(\mathcal{D}_{m})- \hat{\mu}_{g_{2}}(\theta)\right)^2 - \hat{\sigma}^{2}_{g_{2}}(\theta)}{\sqrt{\hat{\sigma}^{2}_{g_{2}}(\theta)}} \\
+    \end{pmatrix}
+\end{equation}
+with
+\begin{equation}
+    g_{1}(\mathcal{D}_{m}) = K^{-1}\sum_{k=1}^{K}IR_{m,k}
+\end{equation}
+\begin{equation}
+    g_{2}(\mathcal{D}_{m}) = \frac{K^{-1}\sum_{k=1}^{K}(IR_{m,k}-K^{-1}\sum_{k'=1}^{K}IR_{m,k'})^{4}}{\left(K^{-1}\sum_{k=1}^{K}(IR_{m,k}-K^{-1}\sum_{k'=1}^{K}IR_{m,k'})^{2}\right)^{2}}
+\end{equation}
+and with
+\begin{equation}
+    \hat{\mu}_{g_{i}}(\theta)=\underset{\tilde{w}_{:,m,:}|\theta}{\widehat{\mathbb{E}}}[g_{i}(\{\tilde{w}_{:,m,:}, \{r_{:,t}\}_{t\in T_{m}}\})]
+\end{equation}
+\begin{equation}
+    \hat{\sigma}_{g_{i}}^{2}(\theta)=\underset{\tilde{w}_{:,m,:}|\theta}{\widehat{\mathbb{V}}}[g_{i}(\{\tilde{w}_{:,m,:}, \{r_{:,t}\}_{t\in T_{m}}\})]
+\end{equation}
+estimated by repeatedly drawing $\tilde{w}_{:,m,:}$ under $\theta$ via Eq. \ref{eq:baseline_portfolio}.
+The estimation itself is performed by minimizing
+\begin{equation}
+    \left(\dfrac{1}{12}\sum_{m=1}^{12}g(\mathcal{D}_{m},\theta)\right)' W \left(\dfrac{1}{12}\sum_{m=1}^{12}g(\mathcal{D}_{m},\theta)\right)
+\end{equation}
+through an exhaustive search over $\{n_{+1}, n_{0}, n_{-1}|n_{+1}+n_{0}+n_{-1}=100, n_{0} \neq 100\}$.
+The weighting matrix is assumed to be an identity matrix because the moments are already standardized.
+
+\section{Auxiliary Results}\label{appendix:auxiliary_results}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{../../outputs/plots/scaling_effects.png}
+    \caption{Effects of Scaling Factor $\alpha_{m,k}$ on $IR_{T_{m},k}$\\
+        \footnotesize
+        $IR_{T_{m},k}$ of the long equal-weighted portfolio as a function of the scaling $\alpha_{m,k}$.
+        Decreasing the scaling linearly improves $IR_{T_{m},k}$.
+    }
+    \label{fig:scaling_effects}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{../../outputs/plots/position_effects.png}
+    \caption{Effects of $n_{+}$, $n_{-}$, and $n_{0}$ on Distribution of $IR_{T_{m},k}$\\
+    \footnotesize
+    The first row displays the mean, standard deviation, and $95$-th quantile of $IR_{T_{m},k}$ as a function of the number of zero positions $n_{0}$ (horizontal axis) and the proportion of short positions $n_{-}/(n_{+}+n_{-})$ (vertical axis).
+    The second row displays analogous plots but for the difference $IR_{T_{m},k}$ and the $IR_{T_{m},k'}$ of the benchmark portfolio under the estimated $\hat{n}_{+}$ and $\hat{n}_{-}$.
+    The ratio of negative positions has an adverse effect on the performance of $IR_{T_{m},k}$ in isolation.
+    However, when measured relative to the $IR_{T_{m},k'}$ of the benchmark portfolio, taking more short positions increases the standard deviation and upper quantiles.
+    The number of zero positions $n_{0}$ seems to have no effect on either $IR_{T_{m},k}$ or their difference because of the standardization.
+    }
+    \label{fig:position_effects}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{../../outputs/plots/strategy_diagram_q_20.png}
+    \caption{Rank Optimization Portfolio ($q=20$)\\
+        \footnotesize
+    }
+    \label{fig:strategy_diagram_q_20}
+\end{figure}
+
+\bibliographystyle{elsarticle-harv}\biboptions{authoryear}
+\bibliography{Library.bib}
+
+\end{document}

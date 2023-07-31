@@ -1,0 +1,314 @@
+schema: '2.0'
+stages:
+  main:
+    cmd: Rscript src\main.R
+    deps:
+    - path: src\helpers
+      md5: 3cd6d0138c5aaf2ec2f9bbcbe7cb97ba.dir
+      size: 1181
+      nfiles: 5
+    - path: src\main.R
+      md5: c221773816928ec7dbe2a88282d64e40
+      size: 1609
+    params:
+      par.yaml:
+        days_per_round: 20
+        participants: 11
+        r_N: 100
+        r_mean: 0.0004
+        r_rho: 0.0002
+        r_var: 0.0004
+        repetitions: 100
+        rounds: 12
+        seed: 1
+        x_prob: 0.9
+    outs:
+    - path: outputs/metrics/metrics.csv
+      md5: 6ae425d861ff8fcbaf9e67cf483d309c
+      size: 53
+    - path: outputs/metrics/metrics.yaml
+      md5: 5ea83f5e0fc07ac4e7c90c7f16adb84e
+      size: 36
+  estimate_coefficients:
+    cmd: Rscript src\estimate_coefficients.R
+    deps:
+    - path: data\processed
+      md5: 1deaeba7dd52c34f4ee3af0ac81e2f03.dir
+      size: 411140
+      nfiles: 3
+    - path: src\estimate_coefficients.R
+      md5: 0734e34ef7aea804e6e8971335a92430
+      size: 3341
+    - path: src\helpers
+      md5: 55d97b3ff3b253bea42bd1c695ef2915.dir
+      size: 2974
+      nfiles: 6
+    params:
+      par.yaml:
+        participants_num_fixed: 163
+        rep_estimate_coefficients: 100
+        returns_num_fixed: 100
+        rounds_num_fixed: 12
+    outs:
+    - path: outputs\metrics\coefficients.yaml
+      md5: df56e83f05d2a4fd66ff39808c8d2671
+      size: 80
+  compute_strategy:
+    cmd: Rscript src\compute_strategy.R
+    deps:
+    - path: outputs\metrics\coefficients.yaml
+      md5: df56e83f05d2a4fd66ff39808c8d2671
+      size: 80
+    - path: src\compute_strategy.R
+      md5: f569797ac9ca3a2f75c7210d694a6050
+      size: 5829
+    - path: src\helpers
+      md5: 55d97b3ff3b253bea42bd1c695ef2915.dir
+      size: 2974
+      nfiles: 6
+    params:
+      par.yaml:
+        days_per_round: 20
+        rep_compute_strategy: 5000
+        returns_mean: 0.00037
+        returns_num: 100
+        rounds_num: 12
+    outs:
+    - path: models\strategy_q_1.RDS
+      md5: 93f19cc4ded5a6a63a9641e7f669ec18
+      size: 4490
+    - path: models\strategy_q_20.RDS
+      md5: 2b16f8cb1927dcc845d14a69d567efb3
+      size: 4490
+  simulate_competition:
+    cmd: Rscript src\simulate_competition.R
+    deps:
+    - path: models\strategy.RDS
+      md5: 759255567e281029135b234f687c46b1
+      size: 2464
+    - path: outputs\metrics\coefficients.yaml
+      md5: 230da52858c461c630751c6c5bef10fc
+      size: 80
+    - path: src\helpers
+      md5: 3356de9a2d5834db3cda89fd9ad9f7f6.dir
+      size: 2633
+      nfiles: 6
+    - path: src\simulate_competition.R
+      md5: 235ed4f85d643bb4102c143319c577c9
+      size: 4523
+    params:
+      par.yaml:
+        R_compute_strategy: 100
+        R_estimate_coefficients: 100
+        R_leaderboard_comparison: 10000
+        R_position_effects: 10000
+        R_simulate_competition: 100000
+        days_per_round: 20
+        participants_N: 163
+        returns_N: 100
+        returns_lambda: 0.0003
+        returns_mean: 0.00037
+        rounds: 12
+        seed: 1
+    outs:
+    - path: outputs/metrics/metrics.yaml
+      md5: 00d605ce742f053cc6917f55d087060c
+      size: 345
+  auxiliary:
+    cmd:
+    - Rscript src\auxiliary\leaderboard_comparison.R
+    - Rscript src\auxiliary\strategy_diagram.R
+    - Rscript src\auxiliary\scaling_effects.R
+    - Rscript src\auxiliary\position_effects.R
+    - Rscript src\auxiliary\competition_statistics_simulated.R
+    - Rscript src\auxiliary\competition_statistics_bootstrapped.R
+    deps:
+    - path: data\processed
+      md5: 1deaeba7dd52c34f4ee3af0ac81e2f03.dir
+      size: 411140
+      nfiles: 3
+    - path: models
+      md5: cc90d4a78ed606f9a0071003400a16be.dir
+      size: 7210227
+      nfiles: 6
+    - path: outputs\metrics
+      md5: 6c7b9ba2ad4ae6810df4e4425069aae6.dir
+      size: 647
+      nfiles: 3
+    - path: src
+      md5: 1bb4820a8a224825c695fa4acb4b5c6d.dir
+      size: 40905
+      nfiles: 17
+    params:
+      par.yaml:
+        days_per_round: 20
+        days_per_round_fixed: 20
+        participants_num: 163
+        participants_num_fixed: 163
+        rep_compute_strategy: 5000
+        rep_estimate_coefficients: 100
+        rep_leaderboard_comparison: 10000
+        rep_position_effects: 10000
+        rep_simulate_competition: 100000
+        returns_lambda: 0.0003
+        returns_mean: 0.00037
+        returns_num: 100
+        returns_num_fixed: 100
+        rounds_num: 12
+        rounds_num_fixed: 12
+        seed: 1
+    outs:
+    - path: outputs\plots\position_effects.png
+      md5: 5ff82d1d3d8b546cd23c5cc63994d32e
+      size: 109088
+    - path: outputs\plots\rank_histogram_bootstrapped.png
+      md5: 230a40bd3ab576935996875740dc0396
+      size: 58054
+    - path: outputs\plots\rank_histogram_simulated.png
+      md5: 812c83948d8ef4488c9220c9a446d704
+      size: 64740
+    - path: outputs\plots\scaling_effects.png
+      md5: 3eb5de115351344790159fca2828969d
+      size: 255380
+    - path: outputs\plots\strategy_diagram_q_1.png
+      md5: 4995452c36caf7542c63f4a791ac397e
+      size: 632114
+    - path: outputs\plots\strategy_diagram_q_20.png
+      md5: 8d67248ac9ebe2e046e4427a8c16d097
+      size: 629351
+    - path: outputs\tables\leaderboard_comparison.csv
+      md5: 1358a0eacd84cf7f1b14c15afd3d619a
+      size: 1174
+    - path: outputs\tables\state_table_bootstrapped.csv
+      md5: c61a862f4dbfcab33016bc7536a348d4
+      size: 271
+    - path: outputs\tables\state_table_simulated.csv
+      md5: 7c5008ed600a497a36fa22352e67ac0b
+      size: 433
+  process_data:
+    cmd: Rscript src\process_data.R
+    deps:
+    - path: data\raw
+      md5: 774a1051e758bdd2ceb10eec3c11995e.dir
+      size: 742354
+      nfiles: 13
+    - path: src\helpers
+      md5: 55d97b3ff3b253bea42bd1c695ef2915.dir
+      size: 2974
+      nfiles: 6
+    - path: src\process_data.R
+      md5: 6e87c4b2b76c97cea24a096d095458d5
+      size: 1731
+    params:
+      par.yaml:
+        rounds_num_fixed: 12
+    outs:
+    - path: data\processed\leaderboard.RDS
+      md5: d8a44e36ad4000eb864cf7d6af0eaa4b
+      size: 56392
+    - path: data\processed\returns.RDS
+      md5: f4a5c9f5ce059d013a728c4fda33bfb0
+      size: 189558
+    - path: data\processed\returns_list.RDS
+      md5: 8acd2a8a7e0ca802a74536e5144679f0
+      size: 165190
+  run_competition_simulated:
+    cmd: Rscript src\run_competition_simulated.R
+    deps:
+    - path: models\strategy_q_1.RDS
+      md5: 93f19cc4ded5a6a63a9641e7f669ec18
+      size: 4490
+    - path: models\strategy_q_20.RDS
+      md5: 2b16f8cb1927dcc845d14a69d567efb3
+      size: 4490
+    - path: outputs\metrics\coefficients.yaml
+      md5: df56e83f05d2a4fd66ff39808c8d2671
+      size: 80
+    - path: src\helpers
+      md5: 55d97b3ff3b253bea42bd1c695ef2915.dir
+      size: 2974
+      nfiles: 6
+    - path: src\run_competition_simulated.R
+      md5: 87a5d1a13cfe02a979cd974173cd7353
+      size: 5935
+    params:
+      par.yaml:
+        days_per_round: 20
+        days_per_round_fixed: 20
+        participants_num: 163
+        participants_num_fixed: 163
+        rep_compute_strategy: 5000
+        rep_estimate_coefficients: 100
+        rep_leaderboard_comparison: 10000
+        rep_position_effects: 10000
+        rep_simulate_competition: 100000
+        returns_lambda: 0.0003
+        returns_mean: 0.00037
+        returns_num: 100
+        returns_num_fixed: 100
+        rounds_num: 12
+        rounds_num_fixed: 12
+        seed: 1
+    outs:
+    - path: models\participant_rank_simulated.RDS
+      md5: d9c789ed6838264a5a2ebb8ddd5e6c68
+      size: 827992
+    - path: models\participant_state_simulated.RDS
+      md5: bd3515ba79f9227416457a7b01d58f3a
+      size: 3836956
+    - path: outputs\metrics\metrics_simulated.yaml
+      md5: 1923d1130e37e17a9d6ba359eaa6a24e
+      size: 358
+  run_competition_bootstrapped:
+    cmd: Rscript src\run_competition_bootstrapped.R
+    deps:
+    - path: data\processed\leaderboard.RDS
+      md5: d8a44e36ad4000eb864cf7d6af0eaa4b
+      size: 56392
+    - path: data\processed\returns_list.RDS
+      md5: 8acd2a8a7e0ca802a74536e5144679f0
+      size: 165190
+    - path: models\strategy_q_1.RDS
+      md5: 93f19cc4ded5a6a63a9641e7f669ec18
+      size: 4490
+    - path: models\strategy_q_20.RDS
+      md5: 2b16f8cb1927dcc845d14a69d567efb3
+      size: 4490
+    - path: outputs\metrics\coefficients.yaml
+      md5: df56e83f05d2a4fd66ff39808c8d2671
+      size: 80
+    - path: src\helpers
+      md5: 55d97b3ff3b253bea42bd1c695ef2915.dir
+      size: 2974
+      nfiles: 6
+    - path: src\run_competition_bootstrapped.R
+      md5: 36ce10da9215c2a89e27322bf72549fa
+      size: 5443
+    params:
+      par.yaml:
+        days_per_round: 20
+        days_per_round_fixed: 20
+        participants_num: 163
+        participants_num_fixed: 163
+        rep_compute_strategy: 5000
+        rep_estimate_coefficients: 100
+        rep_leaderboard_comparison: 10000
+        rep_position_effects: 10000
+        rep_simulate_competition: 100000
+        returns_lambda: 0.0003
+        returns_mean: 0.00037
+        returns_num: 100
+        returns_num_fixed: 100
+        rounds_num: 12
+        rounds_num_fixed: 12
+        seed: 1
+    outs:
+    - path: models\participant_rank_bootstrapped.RDS
+      md5: 1bb44d146090ea3e8996bcaa15b39b22
+      size: 422997
+    - path: models\participant_state_bootstrapped.RDS
+      md5: 6ae1519406467a77bd1b966c5f6af447
+      size: 2113302
+    - path: outputs\metrics\metrics_bootstrapped.yaml
+      md5: d9f2e3bffd0d6d1fb908079fe3b03f62
+      size: 209

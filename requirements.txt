@@ -1,0 +1,9 @@
+data.table
+ggplot2
+latex2exp
+MASS
+moments
+patchwork
+scales
+stringr
+yaml

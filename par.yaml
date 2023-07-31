@@ -1,0 +1,18 @@
+seed: 1
+rounds_num: 12
+days_per_round: 20
+participants_num: 163
+returns_mean: 0.00037  # * round((1.0975)^(1/252) - 1, 5) #https://www.officialdata.org/us/stocks/s-p-500/1930
+returns_num: 100
+returns_lambda: 0.0003
+
+rounds_num_fixed: 12
+days_per_round_fixed: 20
+participants_num_fixed: 163
+returns_num_fixed: 100
+
+rep_estimate_coefficients: 100
+rep_compute_strategy: 5000
+rep_simulate_competition: 100000
+rep_leaderboard_comparison: 10000
+rep_position_effects: 10000

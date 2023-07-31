@@ -1,0 +1,79 @@
+\begin{thebibliography}{8}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\href}[2]{#2}
+\providecommand{\path}[1]{#1}
+\providecommand{\DOIprefix}{doi:}
+\providecommand{\ArXivprefix}{arXiv:}
+\providecommand{\URLprefix}{URL: }
+\providecommand{\Pubmedprefix}{pmid:}
+\providecommand{\doi}[1]{\href{http://dx.doi.org/#1}{\path{#1}}}
+\providecommand{\Pubmed}[1]{\href{pmid:#1}{\path{#1}}}
+\providecommand{\bibinfo}[2]{#2}
+\ifx\xfnm\relax \def\xfnm[#1]{\unskip,\space#1}\fi
+%Type = Incollection
+\bibitem[{Diebold and Lopez(1995)}]{dieboldModelingVolatilityDynamics1995}
+\bibinfo{author}{Diebold, F.X.}, \bibinfo{author}{Lopez, J.A.},
+  \bibinfo{year}{1995}.
+\newblock \bibinfo{title}{Modeling {{Volatility Dynamics}}}, in:
+  \bibinfo{editor}{Hoover, K.D.} (Ed.), \bibinfo{booktitle}{Macroeconometrics:
+  {{Developments}}, {{Tensions}}, and {{Prospects}}}.
+  \bibinfo{publisher}{{Springer Netherlands}}, \bibinfo{address}{{Dordrecht}}.
+  Recent {{Economic Thought Series}}, pp. \bibinfo{pages}{427--472}.
+\newblock \DOIprefix\doi{10.1007/978-94-011-0669-6_11}.
+%Type = Article
+\bibitem[{Kourtis(2016)}]{kourtisSharpeRatioEstimated2016}
+\bibinfo{author}{Kourtis, A.}, \bibinfo{year}{2016}.
+\newblock \bibinfo{title}{The {{Sharpe}} ratio of estimated efficient
+  portfolios}.
+\newblock \bibinfo{journal}{Finance Research Letters} \bibinfo{volume}{17},
+  \bibinfo{pages}{72--78}.
+\newblock \DOIprefix\doi{10.1016/j.frl.2016.01.009}.
+%Type = Misc
+\bibitem[{Makridakis et~al.(2022)Makridakis, Gaba, Hollyman, Petropoulos,
+  Spiliotis and Swanson}]{makridakisM6FinancialDuathlon2022}
+\bibinfo{author}{Makridakis, S.}, \bibinfo{author}{Gaba, A.},
+  \bibinfo{author}{Hollyman, R.}, \bibinfo{author}{Petropoulos, F.},
+  \bibinfo{author}{Spiliotis, E.}, \bibinfo{author}{Swanson, N.},
+  \bibinfo{year}{2022}.
+\newblock \bibinfo{title}{The {{M6 Financial Duathlon Competition
+  Guidelines}}}.
+%Type = Article
+\bibitem[{Malkiel(2005)}]{malkielReflectionsEfficientMarket2005}
+\bibinfo{author}{Malkiel, B.G.}, \bibinfo{year}{2005}.
+\newblock \bibinfo{title}{Reflections on the {{Efficient Market Hypothesis}}:
+  30 {{Years Later}}}.
+\newblock \bibinfo{journal}{Financial Review} \bibinfo{volume}{40},
+  \bibinfo{pages}{1--9}.
+\newblock \DOIprefix\doi{10.1111/j.0732-8516.2005.00090.x}.
+%Type = Article
+\bibitem[{McFadden(1989)}]{mcfaddenMethodSimulatedMoments1989}
+\bibinfo{author}{McFadden, D.}, \bibinfo{year}{1989}.
+\newblock \bibinfo{title}{A {{Method}} of {{Simulated Moments}} for
+  {{Estimation}} of {{Discrete Response Models Without Numerical
+  Integration}}}.
+\newblock \bibinfo{journal}{Econometrica} \bibinfo{volume}{57},
+  \bibinfo{pages}{995--1026}.
+\newblock \DOIprefix\doi{10.2307/1913621},
+  \href{http://arxiv.org/abs/1913621}{{\tt arXiv:1913621}}.
+%Type = Misc
+\bibitem[{Michaus(2023)}]{michausFinQBoostMachineLearning2023}
+\bibinfo{author}{Michaus, M.P.}, \bibinfo{year}{2023}.
+\newblock \bibinfo{title}{{{FinQBoost}}: {{Machine Learning}} for {{Portfolio
+  Forecasting}}}.
+\newblock
+  \bibinfo{howpublished}{https://miguelpmich.medium.com/finqboost-machine-learning-for-portfolio-forecasting-55e62b00ebca}.
+%Type = Book
+\bibitem[{Seber(1984)}]{seberMultivariateObservations1984}
+\bibinfo{author}{Seber, G.A.F.}, \bibinfo{year}{1984}.
+\newblock \bibinfo{title}{Multivariate {{Observations}}}.
+\newblock \bibinfo{edition}{1st edition} ed., \bibinfo{publisher}{{Wiley}},
+  \bibinfo{address}{{New York}}.
+%Type = Misc
+\bibitem[{Webster(2023)}]{webster500Returns19302023}
+\bibinfo{author}{Webster, I.}, \bibinfo{year}{2023}.
+\newblock \bibinfo{title}{S\&{{P}} 500 {{Returns}} since 1930}.
+\newblock
+  \bibinfo{howpublished}{https://www.officialdata.org/us/stocks/s-p-500/1930}.
+
+\end{thebibliography}

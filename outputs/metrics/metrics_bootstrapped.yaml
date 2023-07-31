@@ -1,0 +1,9 @@
+bootstrapped:
+  mean_state: -1.4667836
+  prob_top: 0.00612
+rank optimization (q=1):
+  mean_state: -5.9962438
+  prob_top: 0.03434
+rank optimization (q=20):
+  mean_state: -1.3781189
+  prob_top: 0.00651
