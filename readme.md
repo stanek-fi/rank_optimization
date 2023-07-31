@@ -1,4 +1,4 @@
-This is a replication repository for the article *[A Note on the M6 Forecasting Competition: Rank Optimization]()*.
+This is a replication repository for the article *[A Note on the M6 Forecasting Competition: Rank Optimization](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4527154)*.
 To replicate the analysis:
 
 1. Install dependencies in `requirements.txt`
